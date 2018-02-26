@@ -1,2 +1,2 @@
 # breakout
-my attempt at breakout using html canvas
+my attempt at the classic atari breakout using html canvas, jquery, and javascript
