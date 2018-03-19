@@ -39,4 +39,8 @@ function setDirectionIndicator(e, value) {
     else if(e.keyCode == 68 /* 'd' */ || e.keyCode == 39 /* right arrow */) {
         rightDirectionPressed = value;
     }
+
+    if(leftDirectionPressed || rightDirectionPressed) {
+        $("#myCanvas").addClass("usingArrowKeysOnCanvas");
+    }
 }

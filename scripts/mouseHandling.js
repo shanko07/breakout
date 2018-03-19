@@ -12,6 +12,7 @@ function mouseMoveHandler(e) {
     if(mouseInCanvas) {
         paddleX = e.pageX - offset.left - paddleWidth/2;
     }
+    $("#myCanvas").removeClass("usingArrowKeysOnCanvas");
 }
 
 function mouseEnterHandler(e) {
