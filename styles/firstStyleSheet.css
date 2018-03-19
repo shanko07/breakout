@@ -6,5 +6,5 @@ canvas { background: #eee; display: block; margin: 0 auto; }
 .prettyButtonClicked:hover { background-color: #eee }
 .prettyButtonDefault { background-color: #ccc }
 .prettyButtonDefault:hover { background-color: #eee }
-/*#paddleButton { position: absolute; left: 100px }*/
 .moveTheButton {position: relative }
+.usingArrowKeysOnCanvas { cursor: none; }
