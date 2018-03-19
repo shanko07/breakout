@@ -6,17 +6,9 @@
     <style>
     </style>
 
-    <link rel="stylesheet" href="styles/test.css">
+    <link rel="stylesheet" href="styles/firstStyleSheet.css">
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <!--<script type="text/javascript" src="//raw.githubusercontent.com/shantanubala/haptics.js/master/haptics.js"></script>-->
-    
-    <!--<script type="text/javascript" src="scripts/alternate.js"></script>-->
-    <script src="scripts/detectCollisions.js"></script>
-    <script src="scripts/math2d.js"></script>
-    <script src="scripts/drawing.js"></script>
-    <script src="scripts/mouseHandling.js"></script>
-    <script src="scripts/keyboardHandling.js"></script>
 
 </head>
 <body style="height: 100vh">
@@ -25,7 +17,7 @@
     <canvas id="myCanvas" style="height: 100%; width: 85%"></canvas>
 </div>
 <div id="buttonDiv" style="text-align: center; height: 20%">
-    <button id="myButton" class="prettyButton" type="button">Play / Restart</button>
+    <button id="playButton" class="prettyButton" type="button">Play / Restart</button>
     <button id="pauseButton" class="prettyButton" type="button">Pause</button>
     <button id="debugButton" class="prettyButton" type="button">Debug</button>
     <div id="radioDiv">
@@ -43,9 +35,6 @@
 </div>
 
 <script>
-console.log(DetectCollisions.helloWorld());
-
-//console.log("start of first script");
 
 $("#easybutton").bind("click", dealWithRadio);
 $("#mediumbutton").bind("click", dealWithRadio);
@@ -58,13 +47,11 @@ $("#paddleButton").bind("touchmove", handlePaddleButton);
 $("#paddleButton").bind("touchend", handlePaddleButtonEnd);
 
 function handlePaddleButtonEnd(ev) {
-//console.log("deal with touches");
     ev.preventDefault();
     $("#paddleButton").removeClass("moveTheButton");
 }
 
 function handlePaddleButtonStart(ev) {
-//console.log("deal with touches");
     ev.preventDefault();
     $("#paddleButton").addClass("moveTheButton");
 }
@@ -120,28 +107,28 @@ const GAMESTATES = Object.freeze(st);
 const WINNING_MESSAGE = "YOU WIN!!";
 const LOSING_MESSAGE = "BETTER LUCK NEXT TIME";
 
+var debugButton = $("#debugButton");
+var playButton = $("#playButton");
+var pauseButton = $("#pauseButton");
 
 function handleDebug(e) {
     debugging = !debugging;
     if(debugging)
     {
-        var pbtn = $("#debugButton");
-        pbtn.removeClass("prettyButtonDefault");
-        pbtn.addClass("prettyButtonClicked");
+        debugButton.removeClass("prettyButtonDefault");
+        debugButton.addClass("prettyButtonClicked");
         origbsm = ballSpeedMultiplier;
         ballSpeedMultiplier = .1;
     }
     else
     {
-        var pbtn = $("#debugButton");
-        pbtn.removeClass("prettyButtonClicked");
-        pbtn.addClass("prettyButtonDefault");
+        debugButton.removeClass("prettyButtonClicked");
+        debugButton.addClass("prettyButtonDefault");
         ballSpeedMultiplier = origbsm;
     }
 }
 
 function dealWithRadio(e) {
-//console.log("deal with radio");
     switch (e.target.value) {
         case "easy":
             ballSpeedMultiplier = 1;
@@ -159,17 +146,16 @@ function dealWithRadio(e) {
 }
 
 var state = GAMESTATES.STOP;
-var btndefaultbackground = $("#pauseButton").css("background-color");
 
 var mainAnimationFrameId;
 var mainAnimationFrameCancelled = false;
 
 function dealWithPause(e) {
-if(typeof e != 'undefined')
-{
-    e.preventDefault();
-}
-//console.log("deal with pause");
+    if(typeof e != 'undefined')
+    {
+        e.preventDefault();
+    }
+
     if(null != mainAnimationFrameId) {
         cancelAnimationFrame(mainAnimationFrameId);
         mainAnimationFrameCancelled = true;
@@ -177,21 +163,16 @@ if(typeof e != 'undefined')
     }
     if(state === GAMESTATES.PAUSE)
     {
-        var pbtn = $("#pauseButton");
-        pbtn.removeClass("prettyButtonDefault");
-        pbtn.addClass("prettyButtonClicked");
-        //pbtn.css("background-color", "#996666");
-        var playbtn = $("#myButton");
-        //playbtn.css("background-color", btndefaultbackground);
-        playbtn.removeClass("prettyButtonClicked");
-        playbtn.addClass("prettyButtonDefault"); 
+        pauseButton.removeClass("prettyButtonDefault");
+        pauseButton.addClass("prettyButtonClicked");
+
+        playButton.removeClass("prettyButtonClicked");
+        playButton.addClass("prettyButtonDefault"); 
     }
     else
     {
-        var pbtn = $("#pauseButton");
-        //pbtn.css("background-color", btndefaultbackground);
-        pbtn.removeClass("prettyButtonClicked"); 
-        pbtn.addClass("prettyButtonDefault");        
+        pauseButton.removeClass("prettyButtonClicked"); 
+        pauseButton.addClass("prettyButtonDefault");        
     }
 }
 
@@ -199,34 +180,25 @@ $("#myCanvas").bind("touchstart", dealWithTouches);
 $("#myCanvas").bind("touchmove", dealWithTouches);
 
 function dealWithTouches(ev) {
-//console.log("deal with touches");
     ev.preventDefault();
     var touch = ev.changedTouches[0];
     var offset = $("#myCanvas").offset();
     paddleX = touch.clientX - offset.left;
 }
 
-$("#myButton").bind("click", dealWithRestartClick);
+$("#playButton").bind("click", dealWithRestartClick);
 
 function dealWithRestartClick(e) {
-if(typeof e != 'undefined')
-{
-    e.preventDefault();
-}
-//console.log("deal with restart click");
+    if(typeof e != 'undefined')
+    {
+        e.preventDefault();
+    }
 
-//console.log("width of button ", parseInt($("#paddleButton").css("width"), 10));
-//console.log("width of body ", document.body.clientWidth);
+    pauseButton.removeClass("prettyButtonClicked");
+    pauseButton.addClass("prettyButtonDefault"); 
 
-    var pbtn = $("#pauseButton");
-    //pbtn.css("background-color", btndefaultbackground); 
-    pbtn.removeClass("prettyButtonClicked");
-    pbtn.addClass("prettyButtonDefault"); 
-
-    var playbtn = $("#myButton");
-    //playbtn.css("background-color", "#996666");
-    playbtn.removeClass("prettyButtonDefault");
-    playbtn.addClass("prettyButtonClicked");
+    playButton.removeClass("prettyButtonDefault");
+    playButton.addClass("prettyButtonClicked");
 
     if(state === GAMESTATES.PAUSE)
     {
@@ -240,16 +212,20 @@ if(typeof e != 'undefined')
         var mycanvas = document.getElementById("myCanvas");
         var myctx = mycanvas.getContext("2d");
 
-        paddleX = (canvas.width - paddleWidth)/2;
+        //paddleX = (canvas.width - paddleWidth)/2;
         leftDirectionPressed = false;
         rightDirectionPressed = false;
         firstTime = true;
 
-        ballxstart = Math.floor(Math.random() * 480);
-        ballystart = 125 + Math.floor(Math.random() * 50);
+        //ballxstart = Math.floor(Math.random() * 480);
+        //ballystart = 125 + Math.floor(Math.random() * 50);
+        ballxstart = 100;
+        //ballystart = 150;
+
+        paddleX = ballxstart - (paddleWidth / 2.0);
 
         ballx = ballxstart;
-        bally = ballystart;
+        //bally = ballystart;
 
         bally = .4 * (ctx.canvas.clientHeight - brickOffsetTop) + 50;
         if((ctx.canvas.clientWidth / ctx.canvas.clientHeight) > 1)
@@ -262,8 +238,6 @@ if(typeof e != 'undefined')
             //higher speed for "portrait"
             pixelspersimtimesec = 450;
         }
-
-        //console.log("pixels per sim time sec ", pixelspersimtimesec);
 
         xdir = 1;
         ydir = 1;
@@ -293,12 +267,12 @@ var ctx = canvas.getContext("2d");
 var ballx = 100;
 var bally = 100;
 
-var ballxstart = Math.floor(Math.random() * 480);
-var ballystart = 125 + Math.floor(Math.random() * 50);
+//var ballxstart = Math.floor(Math.random() * 480);
+//var ballystart = 125 + Math.floor(Math.random() * 50);
 
 // sim tick is 10 millis
 var simtimesec = .01;
-// 300 pixels per second
+// 250 pixels per second
 var pixelspersimtimesec = 250;
 
 var xdir = 1;
@@ -331,6 +305,7 @@ var ballSpeedMultiplier = 3;
 
 // if it's the first time, wait a couple seconds so the user gets oriented
 var firstTime = true;
+var delayTimeMillis = 3000;
 
 var mouseInCanvas = false;
 
@@ -354,9 +329,6 @@ function draw() {
     ctx.canvas.width = wid;
     ctx.canvas.height = hei;
 
-    //ctx.canvas.height = ctx.canvas.width * 
-    //(ctx.canvas.clientHeight / ctx.canvas.clientWidth);
-
     brickColumnCount = Math.floor((ctx.canvas.clientWidth - brickOffsetLeft) / (brickWidth+brickPadding));
     brickRowCount = Math.floor(.4 * (ctx.canvas.clientHeight - brickOffsetTop) / (brickHeight+brickPadding));
 
@@ -377,10 +349,7 @@ function draw() {
             }
             bricks[c][r].x = brickOffsetLeft + c*(brickWidth+brickPadding);
             bricks[c][r].y = brickOffsetTop + r*(brickHeight+brickPadding);
-            if(bricks[c][r].dead) {
-                //drawBrick(bricks[c][r].x, bricks[c][r].y, deadBrickColor);
-            }
-            else {
+            if(!bricks[c][r].dead) {
                 drawBrick(bricks[c][r].x, bricks[c][r].y, liveBrickColor);
             }
         }
@@ -423,7 +392,6 @@ function draw() {
         }
     }
 
-    //console.log("deltax ", deltax, " deltay ", deltay);
     ballx = ballx + deltax;
     bally = bally + deltay;
 
@@ -447,7 +415,6 @@ function draw() {
 
     drawPaddle();
     
-    // i can condense this to two statements with || and -1 multiplier
     if(ballx + ballRadius > canvas.width)
     {
         xdir = -1;
@@ -466,17 +433,14 @@ function draw() {
         break;
         case 1:
             topPaddleCollision();
-            //console.log("slope is ", ballSlope);
         break;
         case 2:
-            console.log("paddle case 2");
             state = GAMESTATES.STOP;
             ctx.font="50px sans-serif";
             // there is no height measurement
             var textWidth = ctx.measureText(LOSING_MESSAGE).width;
             var textHeight = 50;
             ctx.fillText(LOSING_MESSAGE, canvas.width/2.0 - textWidth/2.0, canvas.height/2.0 + textHeight/2.0);
-            //alert(LOSING_MESSAGE);
             cancelAnimationFrame(mainAnimationFrameId);
             mainAnimationFrameCancelled = true;
         break;
@@ -508,9 +472,7 @@ function draw() {
             // there is no height measurement
             var textWidth = ctx.measureText(LOSING_MESSAGE).width;
             var textHeight = 50;
-            console.log("wid ", textWidth, " height ", textHeight);
             ctx.fillText(LOSING_MESSAGE, canvas.width/2.0 - textWidth/2.0, canvas.height/2.0 + textHeight/2.0);
-            //alert(LOSING_MESSAGE);
             cancelAnimationFrame(mainAnimationFrameId);
             mainAnimationFrameCancelled = true;
         }
@@ -551,7 +513,6 @@ function draw() {
         var textWidth = ctx.measureText(WINNING_MESSAGE).width;
         var textHeight = 50;
         ctx.fillText(WINNING_MESSAGE, canvas.width/2.0 - textWidth/2.0, canvas.height/2.0 + textHeight/2.0);
-        //alert(WINNING_MESSAGE);
         cancelAnimationFrame(mainAnimationFrameId);
         mainAnimationFrameCancelled = true;
     }
@@ -561,7 +522,10 @@ function draw() {
         firstTime = false;
         cancelAnimationFrame(mainAnimationFrameId);
         mainAnimationFrameCancelled = true;
-        setTimeout(startForReal, 2000);
+        setTimeout(startForReal, delayTimeMillis);
+
+        // while delaying, do a cool countdown thing =)
+        doTheCountdown(delayTimeMillis);
     }
 
     if(!mainAnimationFrameCancelled)
@@ -573,6 +537,21 @@ function draw() {
 function startForReal() {
     mainAnimationFrameId = requestAnimationFrame(draw);
     mainAnimationFrameCancelled = false;
+}
+
+function doTheCountdown(dtm) {
+    var secs = Math.floor(dtm / 1000);
+    ctx.font="50px sans-serif";
+    var textWidth = ctx.measureText("" + secs).width;
+    var textHeight = 50;
+    //ctx.clearRect(0, 0, 200, 200);
+    ctx.clearRect(canvas.width/2.0 - textWidth/2.0 - 20, canvas.height/2.0 - textHeight/2.0 - 20, textWidth + 40, textHeight + 40);
+    ctx.fillText("" + secs, canvas.width/2.0 - textWidth/2.0, canvas.height/2.0 + textHeight/2.0);
+    var dtm2 = dtm - 1000;
+    if(dtm2 > 0)
+    {
+        setTimeout(doTheCountdown, 1000, dtm2);
+    }
 }
 
 function topPaddleCollision() {
@@ -587,6 +566,11 @@ function topPaddleCollision() {
     }
 }
 
+// Priority Scale
+// High - 1
+// Medium - 2
+// Low - 3
+
 // add touch capabilities in addition to keyUp and keyDown
 // use paddle position/speed to "spin" ball https://www.atari.com/arcade#!/arcade/superbreakout/play
 // fix paddle height and ball collision logic
@@ -594,7 +578,7 @@ function topPaddleCollision() {
 // difficulty button
 // start from random spot to center
 // allow mouse to move paddle also
-// TODO: cleanup code!!!
+// TODO 2: cleanup code!!!
 
 // resize canvas to match window (https://webglfundamentals.org/webgl/lessons/webgl-anti-patterns.html)
 // variable # cols based on view size
@@ -602,30 +586,43 @@ function topPaddleCollision() {
 // support landscape vs portrait issues
 // fix issue where the event is getting consumed? on ios safari and not allowing the radio button to be clicked
 // still not totally happy with aspect ratio
-// TODO: ball sometimes intersects with multiple sides of the brick.  what do we do then?
+// TODO 2: ball sometimes intersects with multiple sides of the brick.  what do we do then?
 
 // change brick formation depending on aspect ratio/height in pixels
 // start the ball under the bricks at all times
 // adjust the speed for taller or shorter fields
-// TODO: draw initial field so that people can see what is happening
+// TODO 2: draw initial field so that people can see what is happening
 
 // control bar
-// TODO: control bar logic is not as clean as it should be, make it align left not center
+// TODO 3: control bar logic is not as clean as it should be, make it align left not center
 
-// TODO: put css in styles directory
-
+// put css in styles directory
 // maybe put some functions in other scripts so it isn't one giant mess of scripts
 // look into requestAnimationFrame for animation.  var id = requestAnimationFrame(fcnName);  cancelAnimationFrame(id);
-// TODO: 3, 2, 1 countdown using text on canvas
+// 3, 2, 1 countdown using text on canvas
 
 // toggling speed has to also increase the speed of the bar when controlled via arrow keys
 // fix bug with ball moving "through" a surface within one drawing frame
-// TODO: elegant way to deal with the idea of the ball moving "through" a surface in a single frame..obv should bounce
+// TODO 3: elegant way to deal with the idea of the ball moving "through" a surface in a single frame..obv should bounce
 // Allow 'p' key to restart the game as well as pausing and unpausing
+
+// don't put the ball at a random spot, put it somewhere that makes sense?
+// Hide the cursor on the canvas when the user is using arrow keys to control the game
+
+// TODO 2: allow the paddle to move before we hit play
 
 
 
 </script>
+
+<!--<script type="text/javascript" src="//raw.githubusercontent.com/shantanubala/haptics.js/master/haptics.js"></script>-->
+
+<!--<script type="text/javascript" src="scripts/alternate.js"></script>-->
+<script src="scripts/detectCollisions.js"></script>
+<script src="scripts/math2d.js"></script>
+<script src="scripts/drawing.js"></script>
+<script src="scripts/mouseHandling.js"></script>
+<script src="scripts/keyboardHandling.js"></script>
 
 </body>
 </html>
