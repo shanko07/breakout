@@ -2,44 +2,146 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Gamedev Canvas Workshop</title>
+    <title>Breakout</title>
     <style>
-    	* { padding: 0; margin: 0; }
-    	canvas { background: #eee; display: block; margin: 0 auto; }
     </style>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-</head>
-<body>
+    <link rel="stylesheet" href="styles/test.css">
 
-<div style="display: block; margin: 0 auto; height: 100%; width: 100%">
-    <canvas id="myCanvas" style="height: auto; width: 85%"></canvas>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <!--<script type="text/javascript" src="//raw.githubusercontent.com/shantanubala/haptics.js/master/haptics.js"></script>-->
+    
+    <!--<script type="text/javascript" src="scripts/alternate.js"></script>-->
+    <script src="scripts/detectCollisions.js"></script>
+    <script src="scripts/math2d.js"></script>
+    <script src="scripts/drawing.js"></script>
+    <script src="scripts/mouseHandling.js"></script>
+    <script src="scripts/keyboardHandling.js"></script>
+
+</head>
+<body style="height: 100vh">
+
+<div style="height: 80%; width: 100%">
+    <canvas id="myCanvas" style="height: 100%; width: 85%"></canvas>
 </div>
-<div id="buttonDiv" style="text-align: center">
-    <button id="myButton" type="button">Play / Restart</button>
-    <button id="pauseButton" type="button">Pause</button>
+<div id="buttonDiv" style="text-align: center; height: 20%">
+    <button id="myButton" class="prettyButton" type="button">Play / Restart</button>
+    <button id="pauseButton" class="prettyButton" type="button">Pause</button>
+    <button id="debugButton" class="prettyButton" type="button">Debug</button>
     <div id="radioDiv">
         <div id="radioDiv2" style="display: inline-block; text-align: left">
             <form action="">
                 <input id="easybutton" type="radio" name="difficulty" value="easy"> Easy<br>
-                <input id="mediumbutton" type="radio" name="difficulty" value="medium"> Medium<br>
+                <input id="mediumbutton" type="radio" name="difficulty" value="medium" checked="checked"> Medium<br>
                 <input id="hardbutton" type="radio" name="difficulty" value="hard"> Hard
             </form>
         </div>
     </div>
+    <div style="width: 85%; margin: 0 auto">
+    <button id="paddleButton" class="prettyButton" type="button">the paddle</button>
+    </div>
 </div>
 
 <script>
+console.log(DetectCollisions.helloWorld());
 
-console.log("start of first script");
+//console.log("start of first script");
 
 $("#easybutton").bind("click", dealWithRadio);
 $("#mediumbutton").bind("click", dealWithRadio);
 $("#hardbutton").bind("click", dealWithRadio);
 $("#pauseButton").bind("click", dealWithPause);
+$("#debugButton").bind("click", handleDebug);
+
+$("#paddleButton").bind("touchstart", handlePaddleButtonStart);
+$("#paddleButton").bind("touchmove", handlePaddleButton);
+$("#paddleButton").bind("touchend", handlePaddleButtonEnd);
+
+function handlePaddleButtonEnd(ev) {
+//console.log("deal with touches");
+    ev.preventDefault();
+    $("#paddleButton").removeClass("moveTheButton");
+}
+
+function handlePaddleButtonStart(ev) {
+//console.log("deal with touches");
+    ev.preventDefault();
+    $("#paddleButton").addClass("moveTheButton");
+}
+
+var canvoffhere = $("#myCanvas").offset();
+var halfwidth = document.body.clientWidth/2.0;
+
+var filtercounter = 0;
+
+function handlePaddleButton(ev) {
+    ev.preventDefault();
+
+    requestAnimationFrame(movePaddleButton(ev));
+}
+
+function movePaddleButton(ev) {
+    // process every third event
+    if(filtercounter % 2 == 0)
+    {
+        filtercounter = 0;
+        var touch = ev.changedTouches[0];
+    
+        paddleX = touch.clientX - canvoffhere.left - (paddleWidth/2.0);
+
+        var whatIWant = touch.clientX - halfwidth;
+        $("#paddleButton").css("left", whatIWant + "px");
+    }
+    filtercounter++;
+}
+
+var debugging = false;
+var origbsm = 1;
+
+/* Define an object called GAMESTATES with immutable properties for each state */
+var st = {}
+
+Object.defineProperty(st, 'PLAY', {
+  value: "play",
+  writable: false
+});
+Object.defineProperty(st, 'PAUSE', {
+  value: "pause",
+  writable: false
+});
+Object.defineProperty(st, 'STOP', {
+  value: "stop",
+  writable: false
+});
+
+const GAMESTATES = Object.freeze(st);
+/* */
+
+const WINNING_MESSAGE = "YOU WIN!!";
+const LOSING_MESSAGE = "BETTER LUCK NEXT TIME";
+
+
+function handleDebug(e) {
+    debugging = !debugging;
+    if(debugging)
+    {
+        var pbtn = $("#debugButton");
+        pbtn.removeClass("prettyButtonDefault");
+        pbtn.addClass("prettyButtonClicked");
+        origbsm = ballSpeedMultiplier;
+        ballSpeedMultiplier = .1;
+    }
+    else
+    {
+        var pbtn = $("#debugButton");
+        pbtn.removeClass("prettyButtonClicked");
+        pbtn.addClass("prettyButtonDefault");
+        ballSpeedMultiplier = origbsm;
+    }
+}
 
 function dealWithRadio(e) {
-console.log("deal with radio");
+//console.log("deal with radio");
     switch (e.target.value) {
         case "easy":
             ballSpeedMultiplier = 1;
@@ -56,17 +158,40 @@ console.log("deal with radio");
     }
 }
 
-var state = "stop";
+var state = GAMESTATES.STOP;
+var btndefaultbackground = $("#pauseButton").css("background-color");
+
+var mainAnimationFrameId;
+var mainAnimationFrameCancelled = false;
 
 function dealWithPause(e) {
 if(typeof e != 'undefined')
 {
     e.preventDefault();
 }
-console.log("deal with pause");
-    if(null != myInterval) {
-        clearInterval(myInterval);
-        state = "pause";
+//console.log("deal with pause");
+    if(null != mainAnimationFrameId) {
+        cancelAnimationFrame(mainAnimationFrameId);
+        mainAnimationFrameCancelled = true;
+        state = GAMESTATES.PAUSE;
+    }
+    if(state === GAMESTATES.PAUSE)
+    {
+        var pbtn = $("#pauseButton");
+        pbtn.removeClass("prettyButtonDefault");
+        pbtn.addClass("prettyButtonClicked");
+        //pbtn.css("background-color", "#996666");
+        var playbtn = $("#myButton");
+        //playbtn.css("background-color", btndefaultbackground);
+        playbtn.removeClass("prettyButtonClicked");
+        playbtn.addClass("prettyButtonDefault"); 
+    }
+    else
+    {
+        var pbtn = $("#pauseButton");
+        //pbtn.css("background-color", btndefaultbackground);
+        pbtn.removeClass("prettyButtonClicked"); 
+        pbtn.addClass("prettyButtonDefault");        
     }
 }
 
@@ -74,21 +199,11 @@ $("#myCanvas").bind("touchstart", dealWithTouches);
 $("#myCanvas").bind("touchmove", dealWithTouches);
 
 function dealWithTouches(ev) {
-console.log("deal with touches");
+//console.log("deal with touches");
     ev.preventDefault();
     var touch = ev.changedTouches[0];
-    var $canv = $(touch.target);
-
     var offset = $("#myCanvas").offset();
-    var x = touch.clientX - offset.left;
-    var y = touch.clientY - offset.top;
-
     paddleX = touch.clientX - offset.left;
-    //ctx.beginPath();
-    //ctx.arc(touch.clientX - offset.left + (paddleWidth/2),300,30,0,Math.PI*2);
-    //ctx.strokeStyle = "green";
-    //ctx.stroke();
-    //ctx.closePath();
 }
 
 $("#myButton").bind("click", dealWithRestartClick);
@@ -98,15 +213,29 @@ if(typeof e != 'undefined')
 {
     e.preventDefault();
 }
-console.log("deal with restart click");
+//console.log("deal with restart click");
 
-    if(state === "pause")
+//console.log("width of button ", parseInt($("#paddleButton").css("width"), 10));
+//console.log("width of body ", document.body.clientWidth);
+
+    var pbtn = $("#pauseButton");
+    //pbtn.css("background-color", btndefaultbackground); 
+    pbtn.removeClass("prettyButtonClicked");
+    pbtn.addClass("prettyButtonDefault"); 
+
+    var playbtn = $("#myButton");
+    //playbtn.css("background-color", "#996666");
+    playbtn.removeClass("prettyButtonDefault");
+    playbtn.addClass("prettyButtonClicked");
+
+    if(state === GAMESTATES.PAUSE)
     {
-        state = "play";
-        myInterval = setInterval(draw, refreshIntervalMillis);
+        state = GAMESTATES.PLAY;
+        mainAnimationFrameId = requestAnimationFrame(draw);
+        mainAnimationFrameCancelled = false;
     }
-    else if(state === "stop") {
-        state = "play";
+    else if(state === GAMESTATES.STOP) {
+        state = GAMESTATES.PLAY;
 
         var mycanvas = document.getElementById("myCanvas");
         var myctx = mycanvas.getContext("2d");
@@ -119,14 +248,27 @@ console.log("deal with restart click");
         ballxstart = Math.floor(Math.random() * 480);
         ballystart = 125 + Math.floor(Math.random() * 50);
 
-        x = 0;
-        y = 0;
+        ballx = ballxstart;
+        bally = ballystart;
 
-        ballx = ballxstart + x;
-        bally = ballystart + y;
+        bally = .4 * (ctx.canvas.clientHeight - brickOffsetTop) + 50;
+        if((ctx.canvas.clientWidth / ctx.canvas.clientHeight) > 1)
+        {
+            //lower speed for "landscape"
+            pixelspersimtimesec = 350;
+        }
+        else
+        {
+            //higher speed for "portrait"
+            pixelspersimtimesec = 450;
+        }
+
+        //console.log("pixels per sim time sec ", pixelspersimtimesec);
 
         xdir = 1;
         ydir = 1;
+
+        ballSlope = 999;
 
         for(c=0; c<brickColumnCount; c++)
         {
@@ -140,7 +282,8 @@ console.log("deal with restart click");
 
         drawBall();
 
-        myInterval = setInterval(draw, refreshIntervalMillis);
+        mainAnimationFrameId = requestAnimationFrame(draw);
+        mainAnimationFrameCancelled = false;
     }
 }
 
@@ -153,15 +296,17 @@ var bally = 100;
 var ballxstart = Math.floor(Math.random() * 480);
 var ballystart = 125 + Math.floor(Math.random() * 50);
 
-//used for sin stuff
-var x = 0;
-var y = 0;
+// sim tick is 10 millis
+var simtimesec = .01;
+// 300 pixels per second
+var pixelspersimtimesec = 250;
 
 var xdir = 1;
 var ydir = 1;
 var ballRadius = 10;
 var ballColor = "magenta";
 var refreshIntervalMillis = 10;
+var ballSlope = 999;
 
 var paddleHeight = 10;
 var paddleWidth = 75;
@@ -184,11 +329,10 @@ var liveBrickColor = "green";
 
 var ballSpeedMultiplier = 3;
 
+// if it's the first time, wait a couple seconds so the user gets oriented
 var firstTime = true;
 
 var mouseInCanvas = false;
-
-var myInterval;
 
 // brick container
 var bricks = [];
@@ -201,6 +345,7 @@ for(c=0; c<brickColumnCount; c++)
     }
 }
 
+/* This function is the recurring function which does everything */
 function draw() {
 
     var wid = ctx.canvas.clientWidth;
@@ -213,6 +358,9 @@ function draw() {
     //(ctx.canvas.clientHeight / ctx.canvas.clientWidth);
 
     brickColumnCount = Math.floor((ctx.canvas.clientWidth - brickOffsetLeft) / (brickWidth+brickPadding));
+    brickRowCount = Math.floor(.4 * (ctx.canvas.clientHeight - brickOffsetTop) / (brickHeight+brickPadding));
+
+    
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -239,19 +387,53 @@ function draw() {
     }
     
     drawBall();
-    x += xdir*ballSpeedMultiplier;
-    y += ydir*ballSpeedMultiplier;
 
-    ballx = ballxstart + x;
-    bally = ballystart + y;
+    // time in seconds, incrementing one sec per frame.. speed 1 px/simtime where simtime is 10ms equals 100 px / s
+    var deltad = simtimesec * pixelspersimtimesec * ballSpeedMultiplier;
+    var posrt = Math.sqrt(deltad*deltad/(ballSlope*ballSlope + 1));
+
+    var deltax = posrt;
+    var deltay = ballSlope * deltax;
+
+    if(xdir === 1)
+    {
+        if(ydir === 1)
+        {
+            // moving down to the right
+            // do nothing
+        }
+        else
+        {
+            // moving up to the right
+            deltay = -deltay;
+        }
+    }
+    else
+    {
+        if(ydir === 1)
+        {
+            // moving down to the left
+            deltax = -deltax;
+        }
+        else
+        {
+            // moving up to the left
+            deltay = -deltay;
+            deltax = -deltax;
+        }
+    }
+
+    //console.log("deltax ", deltax, " deltay ", deltay);
+    ballx = ballx + deltax;
+    bally = bally + deltay;
 
     if(leftDirectionPressed)
     {
-        paddleX -= 5;
+        paddleX -= 5 + 3*(ballSpeedMultiplier-1);
     }
     else if(rightDirectionPressed)
     {
-        paddleX += 5;
+        paddleX += 5 + 3*(ballSpeedMultiplier-1);
     }
 
     if(paddleX + paddleWidth + 5 > canvas.width)
@@ -276,20 +458,27 @@ function draw() {
     }
     
 
-    var paddleDetectionResult = detectCollision({x: paddleX, y: canvas.height-paddleHeight}, paddleWidth, paddleHeight);
+    var paddleDetectionResult = DetectCollisions.detectCollision({x: paddleX, y: canvas.height-paddleHeight}, paddleWidth, paddleHeight);
 
     switch(paddleDetectionResult) {
         case 0:
             // do nothing no collision
         break;
         case 1:
-            // change ball direction
-            ydir = -1;
+            topPaddleCollision();
+            //console.log("slope is ", ballSlope);
         break;
         case 2:
-            state = "stop";
-            alert("BETTER LUCK NEXT TIME");
-            clearInterval(myInterval);
+            console.log("paddle case 2");
+            state = GAMESTATES.STOP;
+            ctx.font="50px sans-serif";
+            // there is no height measurement
+            var textWidth = ctx.measureText(LOSING_MESSAGE).width;
+            var textHeight = 50;
+            ctx.fillText(LOSING_MESSAGE, canvas.width/2.0 - textWidth/2.0, canvas.height/2.0 + textHeight/2.0);
+            //alert(LOSING_MESSAGE);
+            cancelAnimationFrame(mainAnimationFrameId);
+            mainAnimationFrameCancelled = true;
         break;
         case 3:
             // change ball direction
@@ -309,9 +498,22 @@ function draw() {
 
     if(bally + ballRadius > canvas.height)
     {
-        state = "stop";
-        alert("BETTER LUCK NEXT TIME");
-        clearInterval(myInterval);
+        if( (ballx >= paddleX) && (ballx <= paddleX + paddleWidth) ) {
+            // we got into a state where the frame carried us "through" the paddle, so we actually should reflect the ball
+            topPaddleCollision();
+        }
+        else {
+            state = GAMESTATES.STOP;
+            ctx.font="50px sans-serif";
+            // there is no height measurement
+            var textWidth = ctx.measureText(LOSING_MESSAGE).width;
+            var textHeight = 50;
+            console.log("wid ", textWidth, " height ", textHeight);
+            ctx.fillText(LOSING_MESSAGE, canvas.width/2.0 - textWidth/2.0, canvas.height/2.0 + textHeight/2.0);
+            //alert(LOSING_MESSAGE);
+            cancelAnimationFrame(mainAnimationFrameId);
+            mainAnimationFrameCancelled = true;
+        }
     }
     else if(bally - ballRadius < 0)
     {
@@ -324,7 +526,7 @@ function draw() {
         {
             if(!bricks[c][r].dead)
             {
-                var detectionResult = detectCollision(bricks[c][r], brickWidth, brickHeight);
+                var detectionResult = DetectCollisions.detectCollision(bricks[c][r], brickWidth, brickHeight);
                 handleBallRedirectAndBrickKill(detectionResult);
             }
         }
@@ -343,265 +545,84 @@ function draw() {
     }
 
     if(allDead) {
-        state = "stop";
-        alert("YOU WIN!!");
-        clearInterval(myInterval);
+        state = GAMESTATES.STOP;
+        ctx.font="50px sans-serif";
+        // there is no height measurement
+        var textWidth = ctx.measureText(WINNING_MESSAGE).width;
+        var textHeight = 50;
+        ctx.fillText(WINNING_MESSAGE, canvas.width/2.0 - textWidth/2.0, canvas.height/2.0 + textHeight/2.0);
+        //alert(WINNING_MESSAGE);
+        cancelAnimationFrame(mainAnimationFrameId);
+        mainAnimationFrameCancelled = true;
     }
 
     if(firstTime) {
         // delay
         firstTime = false;
-        clearInterval(myInterval);
+        cancelAnimationFrame(mainAnimationFrameId);
+        mainAnimationFrameCancelled = true;
         setTimeout(startForReal, 2000);
     }
 
+    if(!mainAnimationFrameCancelled)
+    {
+        mainAnimationFrameId = requestAnimationFrame(draw);
+    }
 }
 
 function startForReal() {
-    myInterval = setInterval(draw, refreshIntervalMillis);
+    mainAnimationFrameId = requestAnimationFrame(draw);
+    mainAnimationFrameCancelled = false;
 }
 
-function handleBallRedirectAndBrickKill(detectionResult) {
-    switch(detectionResult) {
-        case 0:
-            // do nothing
-        break;
-        case 1:
-            bricks[c][r].dead = true;
-            // change ball direction
-            ydir = -1;
-            drawBrick(bricks[c][r].x, bricks[c][r].y, deadBrickColor);
-            drawBall();
-        break;
-        case 2:
-            bricks[c][r].dead = true;
-            // change ball direction
-            ydir = 1;
-            drawBrick(bricks[c][r].x, bricks[c][r].y, deadBrickColor);
-            drawBall();
-        break;
-        case 3:
-            bricks[c][r].dead = true;
-            // change ball direction
-            xdir = -1;
-            drawBrick(bricks[c][r].x, bricks[c][r].y, deadBrickColor);
-            drawBall();
-        break;
-        case 4:
-            bricks[c][r].dead = true;
-            // change ball direction
-            xdir = 1;
-            drawBrick(bricks[c][r].x, bricks[c][r].y, deadBrickColor);
-            drawBall();
-        break;
-        case 5:
-            bricks[c][r].dead = true;
-            // skip changing ball direction because we don't know what to do with that
-            drawBrick(bricks[c][r].x, bricks[c][r].y, deadBrickColor);
-            drawBall();
-        break;
-        default:
-            // do nothing
-        break;
+function topPaddleCollision() {
+    // change ball direction
+    ydir = -1;
+    ballSlope = determineNewSlope(ballx, paddleX, paddleWidth, xdir);
+    if((ballx - paddleX) > (paddleWidth / 2.0)) {
+        xdir = 1;
     }
-}
-
-function drawBall() {
-    ctx.beginPath();
-    ctx.arc(ballx,bally,ballRadius,0,Math.PI*2);
-    ctx.fillStyle = ballColor;
-    ctx.fill();
-    ctx.closePath();
-}
-
-function drawPaddle() {
-    ctx.beginPath();
-    ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
-    ctx.fillStyle = paddleColor;
-    ctx.fill();
-    ctx.closePath();
-}
-
-function drawBrick(x, y, fillstyle) {
-    ctx.beginPath();
-    ctx.rect(x, y, brickWidth, brickHeight);
-    ctx.fillStyle = fillstyle;
-    ctx.fill();
-    ctx.closePath();
-}
-
-// function to determine if ball and brick are colliding
-function detectCollision(object, objectWidth, objectHeight) {
-    // the ball is substantially within the brick, definitely a collision
-    if(ballx > object.x && ballx < (object.x + objectWidth) && bally > object.y && bally < (object.y + brickHeight)){
-        return 5;
-    }
-
-    // y = bricky
-    var y = object.y;
-    var sols1 = findQuadraticSolutions(1, -2*ballx, Math.pow(ballx, 2.0) + Math.pow(y, 2.0) - 2*bally*y + Math.pow(bally, 2.0) - Math.pow(ballRadius, 2.0));
-    var priVal1 = primaryValidation(sols1, object.x, object.x+objectWidth);
-
-    if(priVal1[0] || priVal1[1])
-    {
-        return 1;
-    }
-
-    // y = bricky + brickHeight
-    y = object.y + objectHeight;
-    var sols2 = findQuadraticSolutions(1, -2*ballx, Math.pow(ballx, 2.0) + Math.pow(y, 2.0) - 2*bally*y + Math.pow(bally, 2.0) - Math.pow(ballRadius, 2.0));
-    var priVal2 = primaryValidation(sols2, object.x, object.x+objectWidth);
-    if(priVal2[0] || priVal2[1])
-    {
-        return 2;
-    }
-
-    // x = brickx
-    var x = object.x;
-    var sols3 = findQuadraticSolutions(1, -2*bally, Math.pow(bally, 2.0) + Math.pow(x, 2.0) - 2*ballx*x + Math.pow(ballx, 2.0) - Math.pow(ballRadius, 2.0));
-    var priVal3 = primaryValidation(sols3, object.y, object.y+objectHeight);
-    if(priVal3[0] || priVal3[1])
-    {
-        return 3;
-    }
-
-    // x = brickx + brickWidth
-    x = object.x + objectWidth;
-    var sols4 = findQuadraticSolutions(1, -2*bally, Math.pow(bally, 2.0) + Math.pow(x, 2.0) - 2*ballx*x + Math.pow(ballx, 2.0) - Math.pow(ballRadius, 2.0));
-    var priVal4 = primaryValidation(sols4, object.y, object.y+objectHeight);
-    if(priVal4[0] || priVal4[1])
-    {
-        return 4;
-    }
-
-    // if there are no collisions, return false
-    return 0;
-}
-
-function primaryValidation(solutions, primary1, primary2) {
-    var returnable = [false, false];
-
-    // if the solution set is non-real, then the solutions definitely are not valid
-    if(solutions === "non-real") {
-        return returnable;
-    }
-
-    // store off the solutions
-    var sol1 = solutions[0];
-    var sol2 = solutions[1];
-
-    // if either solution fits within the primary bounds, it passes primary validatio
-    if(sol1 >= primary1 && sol1 <= primary2) {
-        returnable[0] = true;
-    }
-    if(sol2 >= primary1 && sol2 <= primary2) {
-        returnable[1] = true;
-    }
-
-    return returnable;
-}
-    
-function findQuadraticSolutions(a, b, c) {
-    //-b +- sqrt(b^2 - 4ac) / 2a
-
-    // will these values result in non-real solutions?
-    var innerTerm = Math.pow(b, 2.0) - 4*a*c;
-    if(innerTerm < 0)
-    {
-        return "non-real";
-    }
-
-    var sol1 = (-1*b + Math.sqrt(innerTerm))/(2*a);
-    var sol2 = (-1*b - Math.sqrt(innerTerm))/(2*a);
-
-// here you learned what a map is and what an array is?
-//    return {sol1, sol2};
-    return [sol1, sol2];
-}
-
-
-// listen for keys
-document.addEventListener("keydown", keyDownHandler, false);
-document.addEventListener("keyup", keyUpHandler, false);
-//document.getElementById("myCanvas").addEventListener("touchmove", touchMoveHandler, false);
-//document.getElementById("myCanvas").addEventListener("touchstart", touchMoveHandler, false);
-document.addEventListener("mousemove", mouseMoveHandler, false);
-
-document.getElementById("myCanvas").addEventListener("mouseenter", mouseEnterHandler, false);
-document.getElementById("myCanvas").addEventListener("mouseleave", mouseLeaveHandler, false);
-
-function mouseMoveHandler(e) {
-    var offset = $("#myCanvas").offset();
-    if(mouseInCanvas) {
-        paddleX = e.pageX - offset.left - paddleWidth/2;
-    }
-}
-
-function mouseEnterHandler(e) {
-    mouseInCanvas = true;
-}
-
-function mouseLeaveHandler(e) {
-    mouseInCanvas = false;
-}
-
-function keyDownHandler(e) {
-    setDirectionIndicator(e, true);
-    if(e.keyCode == 80 /* 'p' */) {
-        if(state === "play") {
-            dealWithPause();
-        }
-        else if(state === "pause") {
-            dealWithRestartClick();
-        }
-    }
-}
-
-function keyUpHandler(e) {
-    setDirectionIndicator(e, false);
-}
-
-/*
-function touchMoveHandler(e) {
-    e.preventDefault();
-
-    //var ofset = e.target.offset();
-
-    var touches = e.changedTouches;
-    //paddleX = touches[0].clientX - ofset.left;
-    paddleX = touches[0].clientX;
-    ctx.beginPath();
-    //ctx.arc(touches[0].clientX - ofset.left,touches[0].clientY - ofset.top,30,0,Math.PI*2);
-    ctx.arc(touces[0].clientX, touches[0].clientY, 30, 0, Math.PI*2);
-    ctx.strokeStyle = ballColor;
-    ctx.stroke();
-    ctx.closePath();
-}
-*/
-
-function setDirectionIndicator(e, value) {
-    if(e.keyCode == 65 /* 'a' */ || e.keyCode == 37 /* left arrow */) {
-        leftDirectionPressed = value;
-    }
-    else if(e.keyCode == 68 /* 'd' */ || e.keyCode == 39 /* right arrow */) {
-        rightDirectionPressed = value;
+    else {
+        xdir = -1;
     }
 }
 
 // add touch capabilities in addition to keyUp and keyDown
-// TODO: use paddle position/speed to "spin" ball
+// use paddle position/speed to "spin" ball https://www.atari.com/arcade#!/arcade/superbreakout/play
 // fix paddle height and ball collision logic
 // start stop button
 // difficulty button
-// TODO: start from random spot to center
+// start from random spot to center
 // allow mouse to move paddle also
 // TODO: cleanup code!!!
+
 // resize canvas to match window (https://webglfundamentals.org/webgl/lessons/webgl-anti-patterns.html)
 // variable # cols based on view size
 // view size issues on different screens/browsers
 // support landscape vs portrait issues
 // fix issue where the event is getting consumed? on ios safari and not allowing the radio button to be clicked
-// TODO: still not totally happy with aspect ratio
+// still not totally happy with aspect ratio
+// TODO: ball sometimes intersects with multiple sides of the brick.  what do we do then?
+
+// change brick formation depending on aspect ratio/height in pixels
+// start the ball under the bricks at all times
+// adjust the speed for taller or shorter fields
+// TODO: draw initial field so that people can see what is happening
+
+// control bar
+// TODO: control bar logic is not as clean as it should be, make it align left not center
+
+// TODO: put css in styles directory
+
+// maybe put some functions in other scripts so it isn't one giant mess of scripts
+// look into requestAnimationFrame for animation.  var id = requestAnimationFrame(fcnName);  cancelAnimationFrame(id);
+// TODO: 3, 2, 1 countdown using text on canvas
+
+// toggling speed has to also increase the speed of the bar when controlled via arrow keys
+// fix bug with ball moving "through" a surface within one drawing frame
+// TODO: elegant way to deal with the idea of the ball moving "through" a surface in a single frame..obv should bounce
+// Allow 'p' key to restart the game as well as pausing and unpausing
+
 
 
 </script>
